@@ -343,9 +343,10 @@ async def query(request: Request, file: UploadFile = File(...)):
 
             # detection covid
             try:
+                # 2번 선택
                 # prediction, prob, img_pred_name = test_rx_image_for_Covid19(covid_pneumo_model, img_path, filename)
                 prediction, prob, img_pred_name = covid_classifier_model2(img_path, filename)
-                #prediction, prob, img_pred_name = generate_gradcam_heatmap(covid_pneumo_model, img_path, filename)
+                # prediction, prob, img_pred_name = generate_gradcam_heatmap(covid_pneumo_model, img_path, filename)
                 output_path = os.path.join(OUTPUT_FOLDER, img_pred_name)
                 #return render_template('index.html', prediction=prediction, confidence=prob, filename=image_name, xray_image=img_path, xray_image_with_heatmap=output_path)
                 return templates.TemplateResponse("index.html", {"request": request, "prediction": prediction, "confidence": prob, "filename": image_name, "xray_image": img_path, "xray_image_with_heatmap": output_path })
@@ -393,11 +394,16 @@ def covid_classifier_model2(img_path, filename):
     requests.Session.trust_env = False
 
     #MODEL2_API_URL is tensorflow serving URL in another docker
+    # HEADERS = {'content-type': 'application/json'}
     HEADERS = {'content-type': 'application/json', 
-                'Host': 'covid19.myspace.example.com'}
-    #MODEL2_API_URL = 'http://127.0.0.1:8511/v1/models/covid19/versions/1:predict'
-    MODEL2_API_URL = 'http://34.70.85.251:32380/v1/models/covid19:predict'
+                'Host': 'covid19.myspace.example.com'}    
+    MODEL2_API_URL = 'http://35.224.26.28:32380/v1/models/covid19:predict'
     CLASS_NAMES = ['Covid19', 'Normal_Lung', 'Pneumonia_Bacterial_Lung']
+
+    ######################################
+    # HEADERS = get_headers();
+    # MODEL2_API_URL = get_modle2_api_url();
+    ######################################
 
     logging.warning("****** Tenserflow Serving Request  *****")
     json_response = requests.post(MODEL2_API_URL, data=data, headers=HEADERS)
@@ -466,7 +472,8 @@ async def covid_classifier_model2_heatmap(request: Request):
 
     #MODEL2_API_URL is tensorflow serving URL in another docker
     HEADERS = {'content-type': 'application/json'}
-    MODEL2_API_URL = 'http://127.0.0.1:8511/v1/models/covid19/versions/1:predict'
+    # MODEL2_API_URL = 'http://35.224.26.28:32380/v1/models/covid19:predict'
+    MODEL2_API_URL = 'http://35.224.26.28:8511/v1/models/covid19/versions/1:predict'
     CLASS_NAMES = ['Covid19', 'Normal_Lung', 'Pneumonia_Bacterial_Lung']
 
     json_response = requests.post(MODEL2_API_URL, data=data, headers=HEADERS)

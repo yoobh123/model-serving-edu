@@ -49,13 +49,13 @@ def test_rx_image_for_Covid19(model, imagePath, filename):
     pred_pos = int(round(pred[0][0]*100))
 
     if np.argmax(pred, axis=1)[0] == 0:
-        prediction = 'Covid-19 POSITIVE'
+        prediction = '#1-Covid-19 POSITIVE'
         prob = pred_pos
     elif np.argmax(pred, axis=1)[0] == 2:
-        prediction = 'Covid-19 Negative; Bacterial Penumonia Positive'
+        prediction = '#1-Covid-19 Negative; Bacterial Penumonia Positive'
         prob = pred_pos
     else:
-        prediction = 'Covid-19 Negative; Bacterial Penumonia Negative'
+        prediction = '#1-Covid-19 Negative; Bacterial Penumonia Negative'
         prob = pred_pos
 
     img_pred_name = prediction+str(prob)+filename+'.png' #prediction+'_Prob_'+str(prob)+'_Name_'+filename+'.png'
@@ -155,15 +155,15 @@ def generate_gradcam_heatmap(model, imagePath, filename):
     logging.warning(pred_pos)
 
     if (np.argmax(preds, axis=1)[0] == 0) and (pred_pos > 65):
-        prediction = 'Covid-19 POSITIVE'
+        prediction = '#3-Covid-19 POSITIVE'
         file_pred = 'Covid19'
         prob = pred_pos
     elif np.argmax(preds, axis=1)[0] == 2:
-        prediction = 'Covid-19 Negative; Bacterial Penumonia Positive'
+        prediction = '#3-Covid-19 Negative; Bacterial Penumonia Positive'
         file_pred = 'BacPenumonia'
         prob = pred_pos
     else:
-        prediction = 'Covid-19 Negative; Bacterial Penumonia Negative'
+        prediction = '#3-Covid-19 Negative; Bacterial Penumonia Negative'
         file_pred = 'Normal'
         prob = pred_pos
 
@@ -235,9 +235,15 @@ def query():
 
             # detection covid
             try:
+                # 내부 모델만 사용
                 # prediction, prob, img_pred_name = test_rx_image_for_Covid19(covid_pneumo_model, img_path, filename)
-                # prediction, prob, img_pred_name = covid_classifier_model2(img_path, filename)
-                prediction, prob, img_pred_name = generate_gradcam_heatmap(covid_pneumo_model, img_path, filename)
+
+                # tensorflow
+                prediction, prob, img_pred_name = covid_classifier_model2(img_path, filename)
+
+                # 위에 2가지 모두 사용
+                # prediction, prob, img_pred_name = generate_gradcam_heatmap(covid_pneumo_model, img_path, filename)
+
                 output_path = os.path.join(app.config['OUTPUT_FOLDER'], img_pred_name)
                 return render_template('index.html', prediction=prediction, confidence=prob, filename=image_name, xray_image=img_path, xray_image_with_heatmap=output_path)
             except Exception as e:
@@ -275,9 +281,13 @@ def covid_classifier_model2(img_path, filename):
     os.environ['NO_PROXY'] = os.environ['no_proxy'] = '127.0.0.1,localhost,.local'
     requests.Session.trust_env = False
 
+    ############################# kubeflow로 변경 #######################
     #MODEL2_API_URL is tensorflow serving URL in another docker
-    HEADERS = {'content-type': 'application/json'}
-    MODEL2_API_URL = 'http://127.0.0.1:8511/v1/models/covid19/versions/1:predict'
+    # HEADERS = {'content-type': 'application/json'}
+    HEADERS = {'content-type': 'application/json', 
+                'Host': 'covid19.myspace.example.com'}    
+    # MODEL2_API_URL = 'http://35.224.26.28:8511/v1/models/covid19/versions/1:predict'
+    MODEL2_API_URL = 'http://35.224.26.28:32380/v1/models/covid-19:predict'
     CLASS_NAMES = ['Covid19', 'Normal_Lung', 'Pneumonia_Bacterial_Lung']
 
     logging.warning("****** Tenserflow Serving Request  *****")
@@ -304,13 +314,13 @@ def covid_classifier_model2(img_path, filename):
     pred_pos = int(round(pred[0][0] * 100))
 
     if np.argmax(pred, axis=1)[0] == 0:
-        prediction = 'Covid-19 POSITIVE'
+        prediction = '#2-Covid-19 POSITIVE'
         prob = pred_pos
     elif np.argmax(pred, axis=1)[0] == 2:
-        prediction = 'Covid-19 Negative; Bacterial Penumonia Positive'
+        prediction = '#2-Covid-19 Negative; Bacterial Penumonia Positive'
         prob = pred_pos
     else:
-        prediction = 'Covid-19 Negative; Bacterial Penumonia Negative'
+        prediction = '#2-Covid-19 Negative; Bacterial Penumonia Negative'
         prob = pred_pos
 
     img_pred_name = prediction + str(prob) + filename + '.png'  # prediction+'_Prob_'+str(prob)+'_Name_'+filename+'.png'
@@ -347,8 +357,11 @@ def covid_classifier_model2_heatmap():
                        "instances": img.tolist()})
 
     #MODEL2_API_URL is tensorflow serving URL in another docker
-    HEADERS = {'content-type': 'application/json'}
-    MODEL2_API_URL = 'http://127.0.0.1:8511/v1/models/covid19/versions/1:predict'
+    # HEADERS = {'content-type': 'application/json'}
+    HEADERS = {'content-type': 'application/json', 
+                'Host': 'covid19.myspace.example.com'}    
+    # MODEL2_API_URL = 'http://35.224.26.28:8511/v1/models/covid19/versions/1:predict'
+    MODEL2_API_URL = 'http://35.224.26.28:32380/v1/models/covid-19:predict'
     CLASS_NAMES = ['Covid19', 'Normal_Lung', 'Pneumonia_Bacterial_Lung']
 
     json_response = requests.post(MODEL2_API_URL, data=data, headers=HEADERS)
